@@ -2,7 +2,18 @@
   "name": "prosperity",
   "version": "1.0.0",
   "type": "module",
+  "description": "Serverless Puppeteer for fetching NSE API endpoints on Vercel",
+  "main": "api/fetch.js",
+  "scripts": {
+    "start": "vercel dev"
+  },
   "dependencies": {
-    "puppeteer": "^23.0.0"
-  }
+    "puppeteer-core": "^23.0.0",
+    "chrome-aws-lambda": "^20.0.0"
+  },
+  "engines": {
+    "node": "18.x"
+  },
+  "author": "",
+  "license": "MIT"
 }
