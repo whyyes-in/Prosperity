@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "puppeteer-core": "^23.0.0",
-    "chrome-aws-lambda": "^20.0.0"
+    "@sparticuz/chromium": "^131.0.0"
   },
   "engines": {
     "node": "22.x"
