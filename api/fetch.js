@@ -17,6 +17,7 @@ export default async function handler(req, res) {
 
     const page = await browser.newPage();
 
+    // Set realistic headers
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     );
@@ -25,16 +26,19 @@ export default async function handler(req, res) {
       'Referer': 'https://www.nseindia.com/',
     });
 
-    // Directly fetch JSON from NSE API
+    // Go to NSE API and fetch the raw JSON/text
     const data = await page.evaluate(async (apiUrl) => {
-      const resp = await fetch(apiUrl, {
-        headers: { 'Accept': 'application/json, text/plain, */*' },
+      const response = await fetch(apiUrl, {
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+        },
       });
-      return await resp.text();
+      return await response.text();
     }, url);
 
     await browser.close();
     res.status(200).send(data);
+
   } catch (err) {
     if (browser) await browser.close();
     res.status(500).send('Fetch error: ' + err.message);
