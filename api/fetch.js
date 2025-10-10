@@ -214,39 +214,47 @@ export default async function handler(req, res) {
           "Upgrade-Insecure-Requests": "1"
         });
 
-        // Ultra-fast stealth approach: Optimized for Vercel timeout
+        // Balanced stealth approach: Proper session establishment with speed optimization
         let data = null;
         let strategySuccess = false;
         
-        // Strategy 1: Ultra-fast session establishment (3-5 seconds)
+        // Strategy 1: Proper session establishment (4-6 seconds)
         try {
-          console.log("📡 Strategy 1: Ultra-fast session establishment...");
+          console.log("📡 Strategy 1: Proper session establishment...");
           
-          // Quick homepage visit
+          // Visit NSE homepage with proper timing
           await page.goto("https://www.nseindia.com", { 
-            waitUntil: "domcontentloaded",
-            timeout: 6000
+            waitUntil: "networkidle0",
+            timeout: 8000
           });
           
-          // Minimal realistic wait
-          console.log("⏳ Quick session wait...");
-          await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 500));
+          // Proper session wait
+          console.log("⏳ Establishing session...");
+          await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
 
-          // Minimal human-like behavior
+          // Realistic human-like behavior
           try {
-            // Single mouse movement
-            await page.mouse.move(200 + Math.random() * 100, 150 + Math.random() * 100);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // Multiple mouse movements for realism
+            const movements = [
+              { x: 200, y: 150 },
+              { x: 300, y: 200 },
+              { x: 250, y: 250 }
+            ];
             
-            // Single scroll
-            await page.mouse.wheel({ deltaY: Math.random() * 100 + 50 });
-            await new Promise(resolve => setTimeout(resolve, 100));
+            for (const movement of movements) {
+              await page.mouse.move(movement.x + Math.random() * 50, movement.y + Math.random() * 50);
+              await new Promise(resolve => setTimeout(resolve, Math.random() * 200 + 100));
+            }
+            
+            // Realistic scrolling
+            await page.mouse.wheel({ deltaY: Math.random() * 200 + 100 });
+            await new Promise(resolve => setTimeout(resolve, Math.random() * 300 + 200));
             
           } catch (mouseError) {
             console.log("Mouse interaction failed, continuing...");
           }
 
-          // Try API access with session
+          // Try API access with proper session
           data = await page.evaluate(async (url) => {
             try {
               const resp = await fetch(url, {
@@ -257,7 +265,10 @@ export default async function handler(req, res) {
                   "Referer": "https://www.nseindia.com/",
                   "X-Requested-With": "XMLHttpRequest",
                   "Cache-Control": "no-cache",
-                  "Pragma": "no-cache"
+                  "Pragma": "no-cache",
+                  "Sec-Fetch-Dest": "empty",
+                  "Sec-Fetch-Mode": "cors",
+                  "Sec-Fetch-Site": "same-origin"
                 },
                 credentials: 'include',
                 mode: 'cors'
@@ -273,71 +284,73 @@ export default async function handler(req, res) {
             }
           }, apiUrl);
           
-          console.log("✅ Strategy 1 succeeded - Ultra-fast session establishment worked!");
+          console.log("✅ Strategy 1 succeeded - Proper session establishment worked!");
           strategySuccess = true;
           
         } catch (strategy1Error) {
           console.log("❌ Strategy 1 failed:", strategy1Error.message);
           
-          // Strategy 2: Direct navigation (2-4 seconds)
+          // Strategy 2: Market data page approach (5-7 seconds)
           try {
-            console.log("📡 Strategy 2: Direct navigation...");
+            console.log("📡 Strategy 2: Market data page approach...");
             
-            const response = await page.goto(apiUrl, { 
-              waitUntil: "domcontentloaded",
-              timeout: 6000
+            // Visit market data page first
+            await page.goto("https://www.nseindia.com/market-data", { 
+              waitUntil: "networkidle0",
+              timeout: 8000
             });
+            
+            // Wait for session establishment
+            await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
 
-            if (!response || !response.ok()) {
-              throw new Error(`HTTP ${response ? response.status() : 'unknown'}: Direct navigation failed`);
-            }
-
-            data = await page.content();
-            console.log("✅ Strategy 2 succeeded - Direct navigation worked!");
+            // Try API access with market data referer
+            data = await page.evaluate(async (url) => {
+              try {
+                const resp = await fetch(url, {
+                  method: 'GET',
+                  headers: {
+                    "Accept": "application/json, text/plain, */*",
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Referer": "https://www.nseindia.com/market-data",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Cache-Control": "no-cache",
+                    "Pragma": "no-cache"
+                  },
+                  credentials: 'include',
+                  mode: 'cors'
+                });
+                
+                if (!resp.ok) {
+                  throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+                }
+                
+                return await resp.text();
+              } catch (error) {
+                throw new Error(`Fetch error: ${error.message}`);
+              }
+            }, apiUrl);
+            
+            console.log("✅ Strategy 2 succeeded - Market data page approach worked!");
             strategySuccess = true;
             
           } catch (strategy2Error) {
             console.log("❌ Strategy 2 failed:", strategy2Error.message);
             
-            // Strategy 3: Alternative page approach (3-5 seconds)
+            // Strategy 3: Direct navigation fallback (3-5 seconds)
             try {
-              console.log("📡 Strategy 3: Alternative page approach...");
+              console.log("📡 Strategy 3: Direct navigation fallback...");
               
-              // Quick visit to market data page
-              await page.goto("https://www.nseindia.com/market-data", { 
+              const response = await page.goto(apiUrl, { 
                 waitUntil: "domcontentloaded",
-                timeout: 5000
+                timeout: 8000
               });
-              
-              // Minimal wait
-              await new Promise(resolve => setTimeout(resolve, 500));
-              
-              // Try API access
-              data = await page.evaluate(async (url) => {
-                try {
-                  const resp = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                      "Accept": "application/json, text/plain, */*",
-                      "Accept-Language": "en-US,en;q=0.9",
-                      "Referer": "https://www.nseindia.com/market-data",
-                      "X-Requested-With": "XMLHttpRequest"
-                    },
-                    credentials: 'include',
-                    mode: 'cors'
-                  });
-                  
-                  if (!resp.ok) {
-                    throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
-                  }
-                  
-                  return await resp.text();
-                } catch (error) {
-                  throw new Error(`Fetch error: ${error.message}`);
-                }
-              }, apiUrl);
-              
-              console.log("✅ Strategy 3 succeeded - Alternative page approach worked!");
+
+              if (!response || !response.ok()) {
+                throw new Error(`HTTP ${response ? response.status() : 'unknown'}: Direct navigation failed`);
+              }
+
+              data = await page.content();
+              console.log("✅ Strategy 3 succeeded - Direct navigation fallback worked!");
               strategySuccess = true;
               
             } catch (strategy3Error) {
