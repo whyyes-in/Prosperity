@@ -214,61 +214,39 @@ export default async function handler(req, res) {
           "Upgrade-Insecure-Requests": "1"
         });
 
-        // Serverless-optimized stealth approach with advanced evasion
+        // Ultra-fast stealth approach: Optimized for Vercel timeout
         let data = null;
         let strategySuccess = false;
         
-        // Strategy 1: Advanced stealth with realistic browsing pattern
+        // Strategy 1: Ultra-fast session establishment (3-5 seconds)
         try {
-          console.log("📡 Strategy 1: Advanced stealth browsing...");
+          console.log("📡 Strategy 1: Ultra-fast session establishment...");
           
-          // Step 1: Visit NSE homepage with realistic timing
+          // Quick homepage visit
           await page.goto("https://www.nseindia.com", { 
-            waitUntil: "networkidle0",
-            timeout: 12000
+            waitUntil: "domcontentloaded",
+            timeout: 6000
           });
           
-          // Step 2: Simulate realistic user behavior
-          console.log("⏳ Simulating realistic user behavior...");
-          await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
+          // Minimal realistic wait
+          console.log("⏳ Quick session wait...");
+          await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 500));
 
-          // Step 3: Enhanced human-like interactions
+          // Minimal human-like behavior
           try {
-            // Multiple realistic mouse movements
-            const movements = [
-              { x: 150, y: 100 }, // Top navigation
-              { x: 300, y: 200 }, // Main content area
-              { x: 200, y: 300 }, // Footer area
-            ];
+            // Single mouse movement
+            await page.mouse.move(200 + Math.random() * 100, 150 + Math.random() * 100);
+            await new Promise(resolve => setTimeout(resolve, 200));
             
-            for (const movement of movements) {
-              await page.mouse.move(movement.x + Math.random() * 50, movement.y + Math.random() * 50);
-              await new Promise(resolve => setTimeout(resolve, Math.random() * 400 + 200));
-            }
-            
-            // Realistic scrolling
-            await page.mouse.wheel({ deltaY: Math.random() * 300 + 100 });
-            await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 300));
-            
-            // Reading pause
-            await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
+            // Single scroll
+            await page.mouse.wheel({ deltaY: Math.random() * 100 + 50 });
+            await new Promise(resolve => setTimeout(resolve, 100));
             
           } catch (mouseError) {
             console.log("Mouse interaction failed, continuing...");
           }
 
-          // Step 4: Navigate to market data (common user path)
-          console.log("🌐 Navigating to market data page...");
-          await page.goto("https://www.nseindia.com/market-data", { 
-            waitUntil: "networkidle0",
-            timeout: 10000
-          });
-          
-          // Step 5: Simulate exploring market data
-          await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
-
-          // Step 6: Try API access with proper context
-          console.log("📡 Attempting API access with proper context...");
+          // Try API access with session
           data = await page.evaluate(async (url) => {
             try {
               const resp = await fetch(url, {
@@ -276,13 +254,10 @@ export default async function handler(req, res) {
                 headers: {
                   "Accept": "application/json, text/plain, */*",
                   "Accept-Language": "en-US,en;q=0.9",
-                  "Referer": "https://www.nseindia.com/market-data",
+                  "Referer": "https://www.nseindia.com/",
                   "X-Requested-With": "XMLHttpRequest",
                   "Cache-Control": "no-cache",
-                  "Pragma": "no-cache",
-                  "Sec-Fetch-Dest": "empty",
-                  "Sec-Fetch-Mode": "cors",
-                  "Sec-Fetch-Site": "same-origin"
+                  "Pragma": "no-cache"
                 },
                 credentials: 'include',
                 mode: 'cors'
@@ -298,35 +273,19 @@ export default async function handler(req, res) {
             }
           }, apiUrl);
           
-          console.log("✅ Strategy 1 succeeded - Advanced stealth browsing worked!");
+          console.log("✅ Strategy 1 succeeded - Ultra-fast session establishment worked!");
           strategySuccess = true;
           
         } catch (strategy1Error) {
           console.log("❌ Strategy 1 failed:", strategy1Error.message);
           
-          // Strategy 2: Direct navigation with enhanced headers
+          // Strategy 2: Direct navigation (2-4 seconds)
           try {
-            console.log("📡 Strategy 2: Direct navigation with enhanced headers...");
+            console.log("📡 Strategy 2: Direct navigation...");
             
-            // Set enhanced headers for direct navigation
-            await page.setExtraHTTPHeaders({
-              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-              "Accept-Language": "en-US,en;q=0.9",
-              "Accept-Encoding": "gzip, deflate, br",
-              "Cache-Control": "max-age=0",
-              "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-              "Sec-Ch-Ua-Mobile": "?0",
-              "Sec-Ch-Ua-Platform": '"Windows"',
-              "Sec-Fetch-Dest": "document",
-              "Sec-Fetch-Mode": "navigate",
-              "Sec-Fetch-Site": "none",
-              "Sec-Fetch-User": "?1",
-              "Upgrade-Insecure-Requests": "1"
-            });
-
             const response = await page.goto(apiUrl, { 
-              waitUntil: "networkidle0",
-              timeout: 10000
+              waitUntil: "domcontentloaded",
+              timeout: 6000
             });
 
             if (!response || !response.ok()) {
@@ -340,18 +299,18 @@ export default async function handler(req, res) {
           } catch (strategy2Error) {
             console.log("❌ Strategy 2 failed:", strategy2Error.message);
             
-            // Strategy 3: Minimal session with different approach
+            // Strategy 3: Alternative page approach (3-5 seconds)
             try {
-              console.log("📡 Strategy 3: Minimal session with different approach...");
+              console.log("📡 Strategy 3: Alternative page approach...");
               
-              // Visit a different NSE page first
-              await page.goto("https://www.nseindia.com/get-quotes/equity", { 
+              // Quick visit to market data page
+              await page.goto("https://www.nseindia.com/market-data", { 
                 waitUntil: "domcontentloaded",
-                timeout: 8000
+                timeout: 5000
               });
               
-              // Wait for session
-              await new Promise(resolve => setTimeout(resolve, 2000));
+              // Minimal wait
+              await new Promise(resolve => setTimeout(resolve, 500));
               
               // Try API access
               data = await page.evaluate(async (url) => {
@@ -361,7 +320,7 @@ export default async function handler(req, res) {
                     headers: {
                       "Accept": "application/json, text/plain, */*",
                       "Accept-Language": "en-US,en;q=0.9",
-                      "Referer": "https://www.nseindia.com/get-quotes/equity",
+                      "Referer": "https://www.nseindia.com/market-data",
                       "X-Requested-With": "XMLHttpRequest"
                     },
                     credentials: 'include',
@@ -378,7 +337,7 @@ export default async function handler(req, res) {
                 }
               }, apiUrl);
               
-              console.log("✅ Strategy 3 succeeded - Minimal session approach worked!");
+              console.log("✅ Strategy 3 succeeded - Alternative page approach worked!");
               strategySuccess = true;
               
             } catch (strategy3Error) {
@@ -413,7 +372,7 @@ export default async function handler(req, res) {
         retryCount++;
         
         if (retryCount < maxRetries) {
-          const retryDelay = 500 + Math.random() * 1000; // 0.5-1.5 seconds with randomization
+          const retryDelay = 200 + Math.random() * 300; // 0.2-0.5 seconds with randomization
           console.log(`🔄 Retrying in ${Math.round(retryDelay/1000)} seconds...`);
           await new Promise(resolve => setTimeout(resolve, retryDelay));
           continue;
