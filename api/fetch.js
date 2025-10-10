@@ -7,17 +7,18 @@ export default async function handler(req, res) {
 
   let browser = null;
   try {
-    // Launch Puppeteer with serverless-compatible Chromium
+    // Use async executablePath() to get the binary reliably
+    const executablePath = await chromium.executablePath();
+
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: chromium.path, // Use bundled Chromium to avoid /tmp issues
+      executablePath,       // must be provided for puppeteer-core
       headless: chromium.headless,
     });
 
     const page = await browser.newPage();
 
-    // Set realistic headers to bypass NSE bot protection
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     );
@@ -26,12 +27,9 @@ export default async function handler(req, res) {
       'Referer': 'https://www.nseindia.com/',
     });
 
-    // Fetch the JSON/text response from NSE API
     const data = await page.evaluate(async (apiUrl) => {
       const response = await fetch(apiUrl, {
-        headers: {
-          'Accept': 'application/json, text/plain, */*',
-        },
+        headers: { 'Accept': 'application/json, text/plain, */*' },
       });
       return await response.text();
     }, url);
