@@ -73,23 +73,49 @@ export default async function handler(req, res) {
 
       const page = await browser.newPage();
 
-      // Simplified stealth mode for faster execution
+      // Enhanced stealth mode for better detection avoidance
       await page.evaluateOnNewDocument(() => {
         // Remove webdriver property
         Object.defineProperty(navigator, 'webdriver', {
           get: () => undefined,
         });
+        
+        // Mock plugins
+        Object.defineProperty(navigator, 'plugins', {
+          get: () => [1, 2, 3, 4, 5],
+        });
+        
+        // Mock languages
+        Object.defineProperty(navigator, 'languages', {
+          get: () => ['en-US', 'en'],
+        });
+        
+        // Mock permissions
+        const originalQuery = window.navigator.permissions.query;
+        window.navigator.permissions.query = (parameters) => (
+          parameters.name === 'notifications' ?
+            Promise.resolve({ state: Notification.permission }) :
+            originalQuery(parameters)
+        );
       });
 
       // Set essential headers only for speed
       await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
       
       await page.setExtraHTTPHeaders({
-        "Accept": "application/json, text/plain, */*",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
         "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://www.nseindia.com/",
+        "Accept-Encoding": "gzip, deflate, br",
         "Cache-Control": "no-cache",
-        "Pragma": "no-cache"
+        "Pragma": "no-cache",
+        "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"Windows"',
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Sec-Fetch-User": "?1",
+        "Upgrade-Insecure-Requests": "1"
       });
 
       // Quick session establishment - visit homepage first
@@ -99,21 +125,46 @@ export default async function handler(req, res) {
         timeout: 10000
       });
       
-      // Minimal wait for session
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for session to be properly established
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Now navigate directly to the API URL (preserves session)
-      console.log("📡 Navigating to API URL...");
-      const response = await page.goto(apiUrl, { 
-        waitUntil: "domcontentloaded",
-        timeout: 10000
-      });
-
-      if (!response || !response.ok()) {
-        throw new Error(`HTTP ${response ? response.status() : 'unknown'}: Failed to load API`);
+      // Simulate human-like behavior
+      try {
+        await page.mouse.move(100, 100);
+        await new Promise(resolve => setTimeout(resolve, 300));
+        await page.mouse.move(200, 200);
+        await new Promise(resolve => setTimeout(resolve, 200));
+      } catch (mouseError) {
+        console.log("Mouse interaction failed, continuing...");
       }
 
-      const data = await page.content();
+      // Now fetch the API using page.evaluate (preserves session better)
+      console.log("📡 Fetching API data with session...");
+      const data = await page.evaluate(async (url) => {
+        try {
+          const resp = await fetch(url, {
+            method: 'GET',
+            headers: {
+              "Accept": "application/json, text/plain, */*",
+              "Accept-Language": "en-US,en;q=0.9",
+              "Referer": "https://www.nseindia.com/",
+              "X-Requested-With": "XMLHttpRequest",
+              "Cache-Control": "no-cache",
+              "Pragma": "no-cache"
+            },
+            credentials: 'include',
+            mode: 'cors'
+          });
+          
+          if (!resp.ok) {
+            throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+          }
+          
+          return await resp.text();
+        } catch (error) {
+          throw new Error(`Fetch error: ${error.message}`);
+        }
+      }, apiUrl);
 
       await browser.close();
       
