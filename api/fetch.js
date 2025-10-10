@@ -1,6 +1,5 @@
-// api/fetch.js
-import chromium from 'chrome-aws-lambda';
 import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 
 export default async function handler(req, res) {
   const url = req.query.url;
@@ -8,6 +7,7 @@ export default async function handler(req, res) {
 
   let browser = null;
   try {
+    // Launch Puppeteer with serverless-compatible Chromium
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
@@ -25,12 +25,10 @@ export default async function handler(req, res) {
       'Referer': 'https://www.nseindia.com/',
     });
 
-    // Directly fetch API JSON without page.goto
+    // Directly fetch JSON from NSE API
     const data = await page.evaluate(async (apiUrl) => {
       const resp = await fetch(apiUrl, {
-        headers: {
-          'Accept': 'application/json, text/plain, */*',
-        },
+        headers: { 'Accept': 'application/json, text/plain, */*' },
       });
       return await resp.text();
     }, url);
