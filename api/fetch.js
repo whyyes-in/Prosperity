@@ -1,3 +1,4 @@
+// api/fetch.js
 import chromium from 'chrome-aws-lambda';
 import puppeteer from 'puppeteer-core';
 
@@ -24,14 +25,18 @@ export default async function handler(req, res) {
       'Referer': 'https://www.nseindia.com/',
     });
 
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-
-    const text = await page.evaluate(u => 
-      fetch(u, { headers: { 'Accept': 'application/json, text/plain, */*' } }).then(r => r.text()), url
-    );
+    // Directly fetch API JSON without page.goto
+    const data = await page.evaluate(async (apiUrl) => {
+      const resp = await fetch(apiUrl, {
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+        },
+      });
+      return await resp.text();
+    }, url);
 
     await browser.close();
-    res.status(200).send(text);
+    res.status(200).send(data);
   } catch (err) {
     if (browser) await browser.close();
     res.status(500).send('Fetch error: ' + err.message);
