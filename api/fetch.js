@@ -73,19 +73,34 @@ export default async function handler(req, res) {
 
         const page = await browser.newPage();
 
-        // Ultra-stealth mode: Complete browser fingerprint masking
+        // Serverless-optimized ultra-stealth mode
         await page.evaluateOnNewDocument(() => {
           // Remove webdriver property completely
           Object.defineProperty(navigator, 'webdriver', {
             get: () => undefined,
           });
           
-          // Mock realistic plugins
+          // Mock realistic plugins with proper structure
           Object.defineProperty(navigator, 'plugins', {
             get: () => [
-              { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer' },
-              { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai' },
-              { name: 'Native Client', filename: 'internal-nacl-plugin' }
+              { 
+                name: 'Chrome PDF Plugin', 
+                filename: 'internal-pdf-viewer',
+                description: 'Portable Document Format',
+                length: 1
+              },
+              { 
+                name: 'Chrome PDF Viewer', 
+                filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai',
+                description: '',
+                length: 0
+              },
+              { 
+                name: 'Native Client', 
+                filename: 'internal-nacl-plugin',
+                description: '',
+                length: 2
+              }
             ],
           });
           
@@ -102,12 +117,13 @@ export default async function handler(req, res) {
               originalQuery(parameters)
           );
           
-          // Mock chrome runtime
+          // Mock chrome runtime with more properties
           if (!window.chrome) {
             window.chrome = {
               runtime: {
                 onConnect: undefined,
-                onMessage: undefined
+                onMessage: undefined,
+                id: 'abcdefghijklmnopqrstuvwxyz123456'
               }
             };
           }
@@ -130,19 +146,43 @@ export default async function handler(req, res) {
             get: () => 8,
           });
           
-          // Mock connection
+          // Mock connection with realistic values
           Object.defineProperty(navigator, 'connection', {
             get: () => ({
               effectiveType: '4g',
               rtt: 50,
-              downlink: 10
+              downlink: 10,
+              saveData: false
+            }),
+          });
+          
+          // Mock battery API
+          Object.defineProperty(navigator, 'getBattery', {
+            get: () => () => Promise.resolve({
+              charging: true,
+              chargingTime: 0,
+              dischargingTime: Infinity,
+              level: 1
             }),
           });
           
           // Override Date.getTimezoneOffset to look realistic
-          const originalGetTimezoneOffset = Date.prototype.getTimezoneOffset;
           Date.prototype.getTimezoneOffset = function() {
             return -330; // IST timezone
+          };
+          
+          // Mock canvas fingerprint
+          const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
+          HTMLCanvasElement.prototype.toDataURL = function() {
+            return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+          };
+          
+          // Mock WebGL fingerprint
+          const originalGetParameter = WebGLRenderingContext.prototype.getParameter;
+          WebGLRenderingContext.prototype.getParameter = function(parameter) {
+            if (parameter === 37445) return 'Intel Inc.';
+            if (parameter === 37446) return 'Intel(R) Iris(TM) Graphics 6100';
+            return originalGetParameter.call(this, parameter);
           };
         });
 
@@ -174,39 +214,61 @@ export default async function handler(req, res) {
           "Upgrade-Insecure-Requests": "1"
         });
 
-        // Fast stealth approach: Optimized for Vercel timeout
+        // Serverless-optimized stealth approach with advanced evasion
         let data = null;
         let strategySuccess = false;
         
-        // Strategy 1: Quick session establishment (5-8 seconds)
+        // Strategy 1: Advanced stealth with realistic browsing pattern
         try {
-          console.log("📡 Strategy 1: Quick session establishment...");
+          console.log("📡 Strategy 1: Advanced stealth browsing...");
           
-          // Quick homepage visit
+          // Step 1: Visit NSE homepage with realistic timing
           await page.goto("https://www.nseindia.com", { 
-            waitUntil: "domcontentloaded",
-            timeout: 8000
+            waitUntil: "networkidle0",
+            timeout: 12000
           });
           
-          // Minimal realistic wait
-          console.log("⏳ Quick session wait...");
-          await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
+          // Step 2: Simulate realistic user behavior
+          console.log("⏳ Simulating realistic user behavior...");
+          await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
 
-          // Minimal human-like behavior
+          // Step 3: Enhanced human-like interactions
           try {
-            // Single mouse movement
-            await page.mouse.move(200 + Math.random() * 100, 150 + Math.random() * 100);
-            await new Promise(resolve => setTimeout(resolve, 300));
+            // Multiple realistic mouse movements
+            const movements = [
+              { x: 150, y: 100 }, // Top navigation
+              { x: 300, y: 200 }, // Main content area
+              { x: 200, y: 300 }, // Footer area
+            ];
             
-            // Single scroll
-            await page.mouse.wheel({ deltaY: Math.random() * 100 + 50 });
-            await new Promise(resolve => setTimeout(resolve, 200));
+            for (const movement of movements) {
+              await page.mouse.move(movement.x + Math.random() * 50, movement.y + Math.random() * 50);
+              await new Promise(resolve => setTimeout(resolve, Math.random() * 400 + 200));
+            }
+            
+            // Realistic scrolling
+            await page.mouse.wheel({ deltaY: Math.random() * 300 + 100 });
+            await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 300));
+            
+            // Reading pause
+            await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
             
           } catch (mouseError) {
             console.log("Mouse interaction failed, continuing...");
           }
 
-          // Try API access with session
+          // Step 4: Navigate to market data (common user path)
+          console.log("🌐 Navigating to market data page...");
+          await page.goto("https://www.nseindia.com/market-data", { 
+            waitUntil: "networkidle0",
+            timeout: 10000
+          });
+          
+          // Step 5: Simulate exploring market data
+          await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
+
+          // Step 6: Try API access with proper context
+          console.log("📡 Attempting API access with proper context...");
           data = await page.evaluate(async (url) => {
             try {
               const resp = await fetch(url, {
@@ -214,10 +276,13 @@ export default async function handler(req, res) {
                 headers: {
                   "Accept": "application/json, text/plain, */*",
                   "Accept-Language": "en-US,en;q=0.9",
-                  "Referer": "https://www.nseindia.com/",
+                  "Referer": "https://www.nseindia.com/market-data",
                   "X-Requested-With": "XMLHttpRequest",
                   "Cache-Control": "no-cache",
-                  "Pragma": "no-cache"
+                  "Pragma": "no-cache",
+                  "Sec-Fetch-Dest": "empty",
+                  "Sec-Fetch-Mode": "cors",
+                  "Sec-Fetch-Site": "same-origin"
                 },
                 credentials: 'include',
                 mode: 'cors'
@@ -233,19 +298,35 @@ export default async function handler(req, res) {
             }
           }, apiUrl);
           
-          console.log("✅ Strategy 1 succeeded - Quick session establishment worked!");
+          console.log("✅ Strategy 1 succeeded - Advanced stealth browsing worked!");
           strategySuccess = true;
           
         } catch (strategy1Error) {
           console.log("❌ Strategy 1 failed:", strategy1Error.message);
           
-          // Strategy 2: Direct navigation (3-5 seconds)
+          // Strategy 2: Direct navigation with enhanced headers
           try {
-            console.log("📡 Strategy 2: Direct navigation...");
+            console.log("📡 Strategy 2: Direct navigation with enhanced headers...");
             
+            // Set enhanced headers for direct navigation
+            await page.setExtraHTTPHeaders({
+              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+              "Accept-Language": "en-US,en;q=0.9",
+              "Accept-Encoding": "gzip, deflate, br",
+              "Cache-Control": "max-age=0",
+              "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+              "Sec-Ch-Ua-Mobile": "?0",
+              "Sec-Ch-Ua-Platform": '"Windows"',
+              "Sec-Fetch-Dest": "document",
+              "Sec-Fetch-Mode": "navigate",
+              "Sec-Fetch-Site": "none",
+              "Sec-Fetch-User": "?1",
+              "Upgrade-Insecure-Requests": "1"
+            });
+
             const response = await page.goto(apiUrl, { 
-              waitUntil: "domcontentloaded",
-              timeout: 8000
+              waitUntil: "networkidle0",
+              timeout: 10000
             });
 
             if (!response || !response.ok()) {
@@ -259,18 +340,18 @@ export default async function handler(req, res) {
           } catch (strategy2Error) {
             console.log("❌ Strategy 2 failed:", strategy2Error.message);
             
-            // Strategy 3: Alternative page approach (4-6 seconds)
+            // Strategy 3: Minimal session with different approach
             try {
-              console.log("📡 Strategy 3: Alternative page approach...");
+              console.log("📡 Strategy 3: Minimal session with different approach...");
               
-              // Quick visit to market data page
-              await page.goto("https://www.nseindia.com/market-data", { 
+              // Visit a different NSE page first
+              await page.goto("https://www.nseindia.com/get-quotes/equity", { 
                 waitUntil: "domcontentloaded",
-                timeout: 6000
+                timeout: 8000
               });
               
-              // Minimal wait
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              // Wait for session
+              await new Promise(resolve => setTimeout(resolve, 2000));
               
               // Try API access
               data = await page.evaluate(async (url) => {
@@ -280,7 +361,7 @@ export default async function handler(req, res) {
                     headers: {
                       "Accept": "application/json, text/plain, */*",
                       "Accept-Language": "en-US,en;q=0.9",
-                      "Referer": "https://www.nseindia.com/market-data",
+                      "Referer": "https://www.nseindia.com/get-quotes/equity",
                       "X-Requested-With": "XMLHttpRequest"
                     },
                     credentials: 'include',
@@ -297,7 +378,7 @@ export default async function handler(req, res) {
                 }
               }, apiUrl);
               
-              console.log("✅ Strategy 3 succeeded - Alternative page approach worked!");
+              console.log("✅ Strategy 3 succeeded - Minimal session approach worked!");
               strategySuccess = true;
               
             } catch (strategy3Error) {
