@@ -97,6 +97,20 @@ export default async function handler(req, res) {
               Promise.resolve({ state: Notification.permission }) :
               originalQuery(parameters)
           );
+          
+          // Mock chrome runtime
+          if (!window.chrome) {
+            window.chrome = {
+              runtime: {}
+            };
+          }
+          
+          // Mock screen properties
+          Object.defineProperty(screen, 'availHeight', { get: () => 1040 });
+          Object.defineProperty(screen, 'availWidth', { get: () => 1920 });
+          Object.defineProperty(screen, 'colorDepth', { get: () => 24 });
+          Object.defineProperty(screen, 'height', { get: () => 1080 });
+          Object.defineProperty(screen, 'width', { get: () => 1920 });
         });
 
         // Randomize user agent for each request
@@ -127,79 +141,151 @@ export default async function handler(req, res) {
           "Upgrade-Insecure-Requests": "1"
         });
 
-        // Ultra-fast approach: Try direct API access first, then session fallback
+        // Comprehensive multi-strategy approach with enhanced stealth
         let data = null;
+        let strategySuccess = false;
         
-        // Strategy 1: Direct navigation to API URL (fastest - 3-5 seconds)
+        // Strategy 1: Enhanced session establishment with realistic behavior
         try {
-          console.log("📡 Strategy 1: Direct API navigation...");
-          const response = await page.goto(apiUrl, { 
+          console.log("📡 Strategy 1: Enhanced session establishment...");
+          
+          // Visit NSE homepage with realistic timing
+          await page.goto("https://www.nseindia.com", { 
             waitUntil: "domcontentloaded",
-            timeout: 8000
+            timeout: 10000
           });
+          
+          // Wait for page to fully load and establish session
+          console.log("⏳ Establishing session...");
+          await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
 
-          if (!response || !response.ok()) {
-            throw new Error(`HTTP ${response ? response.status() : 'unknown'}: Direct navigation failed`);
+          // Enhanced human-like behavior
+          try {
+            // Multiple realistic mouse movements
+            const movements = Math.floor(Math.random() * 2) + 2; // 2-3 movements
+            for (let i = 0; i < movements; i++) {
+              const x = Math.random() * 300 + 100;
+              const y = Math.random() * 200 + 100;
+              await page.mouse.move(x, y);
+              await new Promise(resolve => setTimeout(resolve, Math.random() * 300 + 200));
+            }
+            
+            // Random scroll
+            await page.mouse.wheel({ deltaY: Math.random() * 100 - 50 });
+            await new Promise(resolve => setTimeout(resolve, Math.random() * 200 + 100));
+            
+          } catch (mouseError) {
+            console.log("Mouse interaction failed, continuing...");
           }
 
-          data = await page.content();
-          console.log("✅ Strategy 1 succeeded - Direct navigation worked!");
+          // Try fetch with enhanced headers
+          data = await page.evaluate(async (url) => {
+            try {
+              const resp = await fetch(url, {
+                method: 'GET',
+                headers: {
+                  "Accept": "application/json, text/plain, */*",
+                  "Accept-Language": "en-US,en;q=0.9",
+                  "Referer": "https://www.nseindia.com/",
+                  "X-Requested-With": "XMLHttpRequest",
+                  "Cache-Control": "no-cache",
+                  "Pragma": "no-cache",
+                  "Sec-Fetch-Dest": "empty",
+                  "Sec-Fetch-Mode": "cors",
+                  "Sec-Fetch-Site": "same-origin"
+                },
+                credentials: 'include',
+                mode: 'cors'
+              });
+              
+              if (!resp.ok) {
+                throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+              }
+              
+              return await resp.text();
+            } catch (error) {
+              throw new Error(`Fetch error: ${error.message}`);
+            }
+          }, apiUrl);
+          
+          console.log("✅ Strategy 1 succeeded - Enhanced session establishment worked!");
+          strategySuccess = true;
           
         } catch (strategy1Error) {
           console.log("❌ Strategy 1 failed:", strategy1Error.message);
           
-          // Strategy 2: Session establishment + fetch (fallback - 8-12 seconds)
+          // Strategy 2: Direct navigation with different approach
           try {
-            console.log("📡 Strategy 2: Session establishment...");
-            await page.goto("https://www.nseindia.com", { 
-              waitUntil: "domcontentloaded",
-              timeout: 6000
-            });
+            console.log("📡 Strategy 2: Direct navigation with stealth...");
             
-            // Minimal wait for session (reduced from 2-5 seconds to 1 second)
-            console.log("⏳ Quick session wait...");
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Set different headers for direct navigation
+            await page.setExtraHTTPHeaders({
+              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+              "Accept-Language": "en-US,en;q=0.9",
+              "Accept-Encoding": "gzip, deflate, br",
+              "Cache-Control": "no-cache",
+              "Pragma": "no-cache",
+              "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+              "Sec-Ch-Ua-Mobile": "?0",
+              "Sec-Ch-Ua-Platform": '"Windows"',
+              "Sec-Fetch-Dest": "document",
+              "Sec-Fetch-Mode": "navigate",
+              "Sec-Fetch-Site": "none",
+              "Sec-Fetch-User": "?1",
+              "Upgrade-Insecure-Requests": "1"
+            });
 
-            // Minimal human-like behavior (single mouse movement)
-            try {
-              await page.mouse.move(100 + Math.random() * 200, 100 + Math.random() * 200);
-              await new Promise(resolve => setTimeout(resolve, 200));
-            } catch (mouseError) {
-              console.log("Mouse interaction failed, continuing...");
+            const response = await page.goto(apiUrl, { 
+              waitUntil: "domcontentloaded",
+              timeout: 10000
+            });
+
+            if (!response || !response.ok()) {
+              throw new Error(`HTTP ${response ? response.status() : 'unknown'}: Direct navigation failed`);
             }
 
-            data = await page.evaluate(async (url) => {
-              try {
-                const resp = await fetch(url, {
-                  method: 'GET',
-                  headers: {
-                    "Accept": "application/json, text/plain, */*",
-                    "Accept-Language": "en-US,en;q=0.9",
-                    "Referer": "https://www.nseindia.com/",
-                    "X-Requested-With": "XMLHttpRequest",
-                    "Cache-Control": "no-cache",
-                    "Pragma": "no-cache"
-                  },
-                  credentials: 'include',
-                  mode: 'cors'
-                });
-                
-                if (!resp.ok) {
-                  throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
-                }
-                
-                return await resp.text();
-              } catch (error) {
-                throw new Error(`Fetch error: ${error.message}`);
-              }
-            }, apiUrl);
-            
-            console.log("✅ Strategy 2 succeeded - Session establishment worked!");
+            data = await page.content();
+            console.log("✅ Strategy 2 succeeded - Direct navigation worked!");
+            strategySuccess = true;
             
           } catch (strategy2Error) {
             console.log("❌ Strategy 2 failed:", strategy2Error.message);
-            throw new Error(`All strategies failed. Last error: ${strategy2Error.message}`);
+            
+            // Strategy 3: Alternative session approach
+            try {
+              console.log("📡 Strategy 3: Alternative session approach...");
+              
+              // Try a different NSE page first
+              await page.goto("https://www.nseindia.com/market-data", { 
+                waitUntil: "domcontentloaded",
+                timeout: 8000
+              });
+              
+              await new Promise(resolve => setTimeout(resolve, 1500));
+              
+              // Navigate to API with referer
+              const response = await page.goto(apiUrl, { 
+                waitUntil: "domcontentloaded",
+                timeout: 8000
+              });
+
+              if (!response || !response.ok()) {
+                throw new Error(`HTTP ${response ? response.status() : 'unknown'}: Alternative approach failed`);
+              }
+
+              data = await page.content();
+              console.log("✅ Strategy 3 succeeded - Alternative session approach worked!");
+              strategySuccess = true;
+              
+            } catch (strategy3Error) {
+              console.log("❌ Strategy 3 failed:", strategy3Error.message);
+              throw new Error(`All strategies failed. Last error: ${strategy3Error.message}`);
+            }
           }
+        }
+        
+        if (!strategySuccess) {
+          throw new Error("No strategy succeeded");
         }
 
         await browser.close();
@@ -229,15 +315,36 @@ export default async function handler(req, res) {
           continue;
         }
         
-        // Enhanced error responses
+        // Enhanced error responses with better categorization
         clearTimeout(timeoutId);
         if (err.message.includes('timeout')) {
-          res.status(408).json({ error: "Request timeout - NSE server may be slow" });
-        } else if (err.message.includes('net::ERR_') || err.message.includes('Access Denied')) {
-          res.status(403).json({ error: "Access denied by NSE - try again later" });
+          res.status(408).json({ 
+            error: "Request timeout - NSE server may be slow", 
+            suggestion: "Try again in a few minutes",
+            url: apiUrl 
+          });
+        } else if (err.message.includes('403') || err.message.includes('Access Denied') || err.message.includes('Forbidden')) {
+          res.status(403).json({ 
+            error: "Access denied by NSE - anti-bot protection triggered", 
+            suggestion: "Wait 5-10 minutes before retrying",
+            url: apiUrl 
+          });
+        } else if (err.message.includes('401') || err.message.includes('Unauthorized')) {
+          res.status(401).json({ 
+            error: "Unauthorized - session not established properly", 
+            suggestion: "Try again - session establishment may have failed",
+            url: apiUrl 
+          });
+        } else if (err.message.includes('net::ERR_') || err.message.includes('network')) {
+          res.status(502).json({ 
+            error: "Network error accessing NSE", 
+            suggestion: "Check NSE server status and try again",
+            url: apiUrl 
+          });
         } else {
           res.status(500).json({ 
-            error: "Fetch error: " + err.message,
+            error: "Unexpected error: " + err.message,
+            suggestion: "Check logs for more details",
             url: apiUrl 
           });
         }
