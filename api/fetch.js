@@ -2,24 +2,35 @@ import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 
 export default async function handler(req, res) {
-  // Enable CORS for Apps Script
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  // Set timeout for Vercel (25 seconds max)
+  const timeoutId = setTimeout(() => {
+    if (!res.headersSent) {
+      res.status(408).json({ error: "Request timeout - function exceeded time limit" });
+    }
+  }, 25000);
 
-  const apiUrl = req.query.url;
-  if (!apiUrl) {
-    return res.status(400).json({ error: "Missing url parameter" });
-  }
+  try {
+    // Enable CORS for Apps Script
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    
+    if (req.method === 'OPTIONS') {
+      clearTimeout(timeoutId);
+      return res.status(200).end();
+    }
 
-  // Security: Only allow NSE URLs
-  if (!apiUrl.startsWith('https://www.nseindia.com/')) {
-    return res.status(400).json({ error: "Only NSE India URLs are allowed" });
-  }
+    const apiUrl = req.query.url;
+    if (!apiUrl) {
+      clearTimeout(timeoutId);
+      return res.status(400).json({ error: "Missing url parameter" });
+    }
+
+    // Security: Only allow NSE URLs
+    if (!apiUrl.startsWith('https://www.nseindia.com/')) {
+      clearTimeout(timeoutId);
+      return res.status(400).json({ error: "Only NSE India URLs are allowed" });
+    }
 
   let browser = null;
   let retryCount = 0;
@@ -47,11 +58,17 @@ export default async function handler(req, res) {
           '--disable-features=VizDisplayCompositor',
           '--disable-background-timer-throttling',
           '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding'
+          '--disable-renderer-backgrounding',
+          '--disable-extensions',
+          '--disable-plugins',
+          '--disable-images',
+          '--disable-default-apps'
         ],
         defaultViewport: { width: 1920, height: 1080 },
         executablePath,
-        headless: chromium.headless,
+        headless: true,
+        ignoreHTTPSErrors: true,
+        ignoreDefaultArgs: ['--disable-extensions']
       });
 
       const page = await browser.newPage();
@@ -119,12 +136,12 @@ export default async function handler(req, res) {
       });
       
       // Wait for page to fully load and establish session
-      await page.waitForTimeout(3000 + Math.random() * 2000);
+      await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 2000));
 
       // Try to interact with the page to look more human-like
       try {
         await page.mouse.move(100, 100);
-        await page.waitForTimeout(500);
+        await new Promise(resolve => setTimeout(resolve, 500));
         await page.mouse.move(200, 200);
       } catch (mouseError) {
         console.log("Mouse interaction failed, continuing...");
@@ -161,6 +178,7 @@ export default async function handler(req, res) {
       await browser.close();
       
       console.log("✅ Successfully fetched data");
+      clearTimeout(timeoutId);
       res.status(200).send(data);
       return;
 
@@ -184,6 +202,7 @@ export default async function handler(req, res) {
       }
       
       // Enhanced error responses
+      clearTimeout(timeoutId);
       if (err.message.includes('timeout')) {
         res.status(408).json({ error: "Request timeout - NSE server may be slow" });
       } else if (err.message.includes('net::ERR_') || err.message.includes('Access Denied')) {
@@ -194,6 +213,12 @@ export default async function handler(req, res) {
           url: apiUrl 
         });
       }
+    }
+  }
+  } catch (finalError) {
+    clearTimeout(timeoutId);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Unexpected error: " + finalError.message });
     }
   }
 }
