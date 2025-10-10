@@ -12,7 +12,7 @@
     "chrome-aws-lambda": "^20.0.0"
   },
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   },
   "author": "",
   "license": "MIT"
