@@ -2,12 +2,12 @@ import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 
 export default async function handler(req, res) {
-  // Set timeout for Vercel (25 seconds max)
+  // Set timeout for Vercel (20 seconds max - reduced from 25)
   const timeoutId = setTimeout(() => {
     if (!res.headersSent) {
       res.status(408).json({ error: "Request timeout - function exceeded time limit" });
     }
-  }, 25000);
+  }, 20000);
 
   try {
     // Enable CORS for Apps Script
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
 
   let browser = null;
   let retryCount = 0;
-  const maxRetries = 3;
+  const maxRetries = 2; // Reduced from 3 to save time
 
   while (retryCount < maxRetries) {
     try {
@@ -73,82 +73,25 @@ export default async function handler(req, res) {
 
       const page = await browser.newPage();
 
-      // Enhanced stealth mode - more realistic browser fingerprint
+      // Simplified stealth mode for faster execution
       await page.evaluateOnNewDocument(() => {
         // Remove webdriver property
         Object.defineProperty(navigator, 'webdriver', {
           get: () => undefined,
         });
-        
-        // Mock plugins
-        Object.defineProperty(navigator, 'plugins', {
-          get: () => [1, 2, 3, 4, 5],
-        });
-        
-        // Mock languages
-        Object.defineProperty(navigator, 'languages', {
-          get: () => ['en-US', 'en'],
-        });
-        
-        // Mock permissions
-        const originalQuery = window.navigator.permissions.query;
-        window.navigator.permissions.query = (parameters) => (
-          parameters.name === 'notifications' ?
-            Promise.resolve({ state: Notification.permission }) :
-            originalQuery(parameters)
-        );
       });
 
-      // Set realistic headers with more variety
-      const userAgents = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-      ];
-      
-      const randomUA = userAgents[Math.floor(Math.random() * userAgents.length)];
-      await page.setUserAgent(randomUA);
+      // Set essential headers only for speed
+      await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
       
       await page.setExtraHTTPHeaders({
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "Accept": "application/json, text/plain, */*",
         "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
-        "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-        "Sec-Ch-Ua-Mobile": "?0",
-        "Sec-Ch-Ua-Platform": '"Windows"',
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-        "Sec-Fetch-User": "?1",
-        "Upgrade-Insecure-Requests": "1"
+        "Referer": "https://www.nseindia.com/"
       });
 
-      // Random delay to avoid detection
-      await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
-
-      // 1️⃣ First visit NSE homepage to establish cookies/session
-      console.log("🌐 Visiting NSE homepage to establish session...");
-      await page.goto("https://www.nseindia.com", { 
-        waitUntil: "domcontentloaded",
-        timeout: 30000 
-      });
-      
-      // Wait for page to fully load and establish session
-      await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 2000));
-
-      // Try to interact with the page to look more human-like
-      try {
-        await page.mouse.move(100, 100);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await page.mouse.move(200, 200);
-      } catch (mouseError) {
-        console.log("Mouse interaction failed, continuing...");
-      }
-
-      // 2️⃣ Now fetch the API via page.evaluate
-      console.log("📡 Fetching API data...");
+      // Skip homepage visit for speed - go directly to API
+      console.log("📡 Fetching API data directly...");
       const data = await page.evaluate(async (url) => {
         try {
           const resp = await fetch(url, {
@@ -158,8 +101,7 @@ export default async function handler(req, res) {
               "Accept-Language": "en-US,en;q=0.9",
               "Referer": "https://www.nseindia.com/",
               "X-Requested-With": "XMLHttpRequest",
-              "Cache-Control": "no-cache",
-              "Pragma": "no-cache"
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             },
             credentials: 'include',
             mode: 'cors'
@@ -196,8 +138,8 @@ export default async function handler(req, res) {
       retryCount++;
       
       if (retryCount < maxRetries) {
-        console.log(`🔄 Retrying in ${retryCount * 2} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, retryCount * 2000));
+        console.log(`🔄 Retrying in ${retryCount * 1} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, retryCount * 1000)); // Reduced retry delay
         continue;
       }
       
