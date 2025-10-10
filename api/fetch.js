@@ -11,13 +11,13 @@ export default async function handler(req, res) {
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath,
+      executablePath: chromium.path, // Use bundled Chromium to avoid /tmp issues
       headless: chromium.headless,
     });
 
     const page = await browser.newPage();
 
-    // Set realistic headers
+    // Set realistic headers to bypass NSE bot protection
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     );
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
       'Referer': 'https://www.nseindia.com/',
     });
 
-    // Go to NSE API and fetch the raw JSON/text
+    // Fetch the JSON/text response from NSE API
     const data = await page.evaluate(async (apiUrl) => {
       const response = await fetch(apiUrl, {
         headers: {
