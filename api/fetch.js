@@ -73,24 +73,28 @@ export default async function handler(req, res) {
 
         const page = await browser.newPage();
 
-        // Enhanced stealth mode for better detection avoidance
+        // Ultra-stealth mode: Complete browser fingerprint masking
         await page.evaluateOnNewDocument(() => {
-          // Remove webdriver property
+          // Remove webdriver property completely
           Object.defineProperty(navigator, 'webdriver', {
             get: () => undefined,
           });
           
-          // Mock plugins
+          // Mock realistic plugins
           Object.defineProperty(navigator, 'plugins', {
-            get: () => [1, 2, 3, 4, 5],
+            get: () => [
+              { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer' },
+              { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai' },
+              { name: 'Native Client', filename: 'internal-nacl-plugin' }
+            ],
           });
           
-          // Mock languages
+          // Mock realistic languages
           Object.defineProperty(navigator, 'languages', {
             get: () => ['en-US', 'en'],
           });
           
-          // Mock permissions
+          // Mock permissions API
           const originalQuery = window.navigator.permissions.query;
           window.navigator.permissions.query = (parameters) => (
             parameters.name === 'notifications' ?
@@ -101,16 +105,45 @@ export default async function handler(req, res) {
           // Mock chrome runtime
           if (!window.chrome) {
             window.chrome = {
-              runtime: {}
+              runtime: {
+                onConnect: undefined,
+                onMessage: undefined
+              }
             };
           }
           
-          // Mock screen properties
+          // Mock realistic screen properties
           Object.defineProperty(screen, 'availHeight', { get: () => 1040 });
           Object.defineProperty(screen, 'availWidth', { get: () => 1920 });
           Object.defineProperty(screen, 'colorDepth', { get: () => 24 });
           Object.defineProperty(screen, 'height', { get: () => 1080 });
           Object.defineProperty(screen, 'width', { get: () => 1920 });
+          Object.defineProperty(screen, 'pixelDepth', { get: () => 24 });
+          
+          // Mock hardware concurrency
+          Object.defineProperty(navigator, 'hardwareConcurrency', {
+            get: () => 8,
+          });
+          
+          // Mock device memory
+          Object.defineProperty(navigator, 'deviceMemory', {
+            get: () => 8,
+          });
+          
+          // Mock connection
+          Object.defineProperty(navigator, 'connection', {
+            get: () => ({
+              effectiveType: '4g',
+              rtt: 50,
+              downlink: 10
+            }),
+          });
+          
+          // Override Date.getTimezoneOffset to look realistic
+          const originalGetTimezoneOffset = Date.prototype.getTimezoneOffset;
+          Date.prototype.getTimezoneOffset = function() {
+            return -330; // IST timezone
+          };
         });
 
         // Randomize user agent for each request
@@ -141,44 +174,61 @@ export default async function handler(req, res) {
           "Upgrade-Insecure-Requests": "1"
         });
 
-        // Comprehensive multi-strategy approach with enhanced stealth
+        // Ultra-stealth approach: Mimic real user browsing patterns
         let data = null;
         let strategySuccess = false;
         
-        // Strategy 1: Enhanced session establishment with realistic behavior
+        // Strategy 1: Natural browsing simulation
         try {
-          console.log("📡 Strategy 1: Enhanced session establishment...");
+          console.log("📡 Strategy 1: Natural browsing simulation...");
           
-          // Visit NSE homepage with realistic timing
+          // Step 1: Visit NSE homepage like a real user
           await page.goto("https://www.nseindia.com", { 
-            waitUntil: "domcontentloaded",
-            timeout: 10000
+            waitUntil: "networkidle0",
+            timeout: 15000
           });
           
-          // Wait for page to fully load and establish session
-          console.log("⏳ Establishing session...");
-          await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
+          // Step 2: Simulate reading the page (realistic wait)
+          console.log("⏳ Simulating page reading...");
+          await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 2000));
 
-          // Enhanced human-like behavior
+          // Step 3: Simulate user interaction patterns
           try {
-            // Multiple realistic mouse movements
-            const movements = Math.floor(Math.random() * 2) + 2; // 2-3 movements
-            for (let i = 0; i < movements; i++) {
-              const x = Math.random() * 300 + 100;
-              const y = Math.random() * 200 + 100;
-              await page.mouse.move(x, y);
-              await new Promise(resolve => setTimeout(resolve, Math.random() * 300 + 200));
+            // Simulate clicking on different sections (like a real user exploring)
+            const sections = [
+              { x: 200, y: 150 }, // Market data area
+              { x: 300, y: 200 }, // Navigation area
+              { x: 150, y: 250 }, // Content area
+            ];
+            
+            for (const section of sections) {
+              await page.mouse.move(section.x + Math.random() * 50, section.y + Math.random() * 50);
+              await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 300));
             }
             
-            // Random scroll
-            await page.mouse.wheel({ deltaY: Math.random() * 100 - 50 });
-            await new Promise(resolve => setTimeout(resolve, Math.random() * 200 + 100));
+            // Simulate scrolling behavior
+            await page.mouse.wheel({ deltaY: Math.random() * 200 + 100 });
+            await new Promise(resolve => setTimeout(resolve, Math.random() * 400 + 200));
+            
+            // Simulate reading pause
+            await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
             
           } catch (mouseError) {
             console.log("Mouse interaction failed, continuing...");
           }
 
-          // Try fetch with enhanced headers
+          // Step 4: Navigate to market data page (common user path)
+          console.log("🌐 Navigating to market data...");
+          await page.goto("https://www.nseindia.com/market-data", { 
+            waitUntil: "networkidle0",
+            timeout: 12000
+          });
+          
+          // Step 5: Simulate exploring market data
+          await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
+
+          // Step 6: Now try to access the API (as if user clicked on insider trading)
+          console.log("📡 Attempting API access...");
           data = await page.evaluate(async (url) => {
             try {
               const resp = await fetch(url, {
@@ -186,13 +236,10 @@ export default async function handler(req, res) {
                 headers: {
                   "Accept": "application/json, text/plain, */*",
                   "Accept-Language": "en-US,en;q=0.9",
-                  "Referer": "https://www.nseindia.com/",
+                  "Referer": "https://www.nseindia.com/market-data",
                   "X-Requested-With": "XMLHttpRequest",
                   "Cache-Control": "no-cache",
-                  "Pragma": "no-cache",
-                  "Sec-Fetch-Dest": "empty",
-                  "Sec-Fetch-Mode": "cors",
-                  "Sec-Fetch-Site": "same-origin"
+                  "Pragma": "no-cache"
                 },
                 credentials: 'include',
                 mode: 'cors'
@@ -208,23 +255,22 @@ export default async function handler(req, res) {
             }
           }, apiUrl);
           
-          console.log("✅ Strategy 1 succeeded - Enhanced session establishment worked!");
+          console.log("✅ Strategy 1 succeeded - Natural browsing simulation worked!");
           strategySuccess = true;
           
         } catch (strategy1Error) {
           console.log("❌ Strategy 1 failed:", strategy1Error.message);
           
-          // Strategy 2: Direct navigation with different approach
+          // Strategy 2: Direct navigation with realistic headers
           try {
-            console.log("📡 Strategy 2: Direct navigation with stealth...");
+            console.log("📡 Strategy 2: Direct navigation with realistic headers...");
             
-            // Set different headers for direct navigation
+            // Reset headers to look like a direct browser request
             await page.setExtraHTTPHeaders({
-              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
               "Accept-Language": "en-US,en;q=0.9",
               "Accept-Encoding": "gzip, deflate, br",
-              "Cache-Control": "no-cache",
-              "Pragma": "no-cache",
+              "Cache-Control": "max-age=0",
               "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
               "Sec-Ch-Ua-Mobile": "?0",
               "Sec-Ch-Ua-Platform": '"Windows"',
@@ -236,8 +282,8 @@ export default async function handler(req, res) {
             });
 
             const response = await page.goto(apiUrl, { 
-              waitUntil: "domcontentloaded",
-              timeout: 10000
+              waitUntil: "networkidle0",
+              timeout: 12000
             });
 
             if (!response || !response.ok()) {
@@ -251,30 +297,31 @@ export default async function handler(req, res) {
           } catch (strategy2Error) {
             console.log("❌ Strategy 2 failed:", strategy2Error.message);
             
-            // Strategy 3: Alternative session approach
+            // Strategy 3: Minimal session approach
             try {
-              console.log("📡 Strategy 3: Alternative session approach...");
+              console.log("📡 Strategy 3: Minimal session approach...");
               
-              // Try a different NSE page first
-              await page.goto("https://www.nseindia.com/market-data", { 
+              // Quick homepage visit
+              await page.goto("https://www.nseindia.com", { 
                 waitUntil: "domcontentloaded",
                 timeout: 8000
               });
               
-              await new Promise(resolve => setTimeout(resolve, 1500));
+              // Minimal wait
+              await new Promise(resolve => setTimeout(resolve, 1000));
               
-              // Navigate to API with referer
+              // Direct navigation to API
               const response = await page.goto(apiUrl, { 
                 waitUntil: "domcontentloaded",
                 timeout: 8000
               });
 
               if (!response || !response.ok()) {
-                throw new Error(`HTTP ${response ? response.status() : 'unknown'}: Alternative approach failed`);
+                throw new Error(`HTTP ${response ? response.status() : 'unknown'}: Minimal approach failed`);
               }
 
               data = await page.content();
-              console.log("✅ Strategy 3 succeeded - Alternative session approach worked!");
+              console.log("✅ Strategy 3 succeeded - Minimal session approach worked!");
               strategySuccess = true;
               
             } catch (strategy3Error) {
