@@ -87,35 +87,33 @@ export default async function handler(req, res) {
       await page.setExtraHTTPHeaders({
         "Accept": "application/json, text/plain, */*",
         "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://www.nseindia.com/"
+        "Referer": "https://www.nseindia.com/",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"
       });
 
-      // Skip homepage visit for speed - go directly to API
-      console.log("📡 Fetching API data directly...");
-      const data = await page.evaluate(async (url) => {
-        try {
-          const resp = await fetch(url, {
-            method: 'GET',
-            headers: {
-              "Accept": "application/json, text/plain, */*",
-              "Accept-Language": "en-US,en;q=0.9",
-              "Referer": "https://www.nseindia.com/",
-              "X-Requested-With": "XMLHttpRequest",
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            },
-            credentials: 'include',
-            mode: 'cors'
-          });
-          
-          if (!resp.ok) {
-            throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
-          }
-          
-          return await resp.text();
-        } catch (error) {
-          throw new Error(`Fetch error: ${error.message}`);
-        }
-      }, apiUrl);
+      // Quick session establishment - visit homepage first
+      console.log("🌐 Quick session setup...");
+      await page.goto("https://www.nseindia.com", { 
+        waitUntil: "domcontentloaded",
+        timeout: 10000
+      });
+      
+      // Minimal wait for session
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Now navigate directly to the API URL (preserves session)
+      console.log("📡 Navigating to API URL...");
+      const response = await page.goto(apiUrl, { 
+        waitUntil: "domcontentloaded",
+        timeout: 10000
+      });
+
+      if (!response || !response.ok()) {
+        throw new Error(`HTTP ${response ? response.status() : 'unknown'}: Failed to load API`);
+      }
+
+      const data = await page.content();
 
       await browser.close();
       
