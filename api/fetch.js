@@ -127,88 +127,74 @@ export default async function handler(req, res) {
           "Upgrade-Insecure-Requests": "1"
         });
 
-        // Quick session establishment - visit homepage first
-        console.log("🌐 Quick session setup...");
-        await page.goto("https://www.nseindia.com", { 
-          waitUntil: "domcontentloaded",
-          timeout: 10000
-        });
-        
-        // Random wait time to avoid detection patterns
-        const waitTime = 2000 + Math.random() * 3000; // 2-5 seconds
-        console.log(`⏳ Waiting ${Math.round(waitTime)}ms for session...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-
-        // More realistic human-like behavior
-        try {
-          // Random mouse movements
-          const movements = Math.floor(Math.random() * 3) + 2; // 2-4 movements
-          for (let i = 0; i < movements; i++) {
-            const x = Math.random() * 400 + 50;
-            const y = Math.random() * 300 + 50;
-            await page.mouse.move(x, y);
-            await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 200));
-          }
-          
-          // Random scroll
-          await page.mouse.wheel({ deltaY: Math.random() * 200 - 100 });
-          await new Promise(resolve => setTimeout(resolve, Math.random() * 300 + 100));
-          
-        } catch (mouseError) {
-          console.log("Mouse interaction failed, continuing...");
-        }
-
-        // Try multiple strategies for API access
+        // Ultra-fast approach: Try direct API access first, then session fallback
         let data = null;
         
-        // Strategy 1: Fetch with session
+        // Strategy 1: Direct navigation to API URL (fastest - 3-5 seconds)
         try {
-          console.log("📡 Strategy 1: Fetch with session...");
-          data = await page.evaluate(async (url) => {
-            try {
-              const resp = await fetch(url, {
-                method: 'GET',
-                headers: {
-                  "Accept": "application/json, text/plain, */*",
-                  "Accept-Language": "en-US,en;q=0.9",
-                  "Referer": "https://www.nseindia.com/",
-                  "X-Requested-With": "XMLHttpRequest",
-                  "Cache-Control": "no-cache",
-                  "Pragma": "no-cache"
-                },
-                credentials: 'include',
-                mode: 'cors'
-              });
-              
-              if (!resp.ok) {
-                throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
-              }
-              
-              return await resp.text();
-            } catch (error) {
-              throw new Error(`Fetch error: ${error.message}`);
-            }
-          }, apiUrl);
-          
-          console.log("✅ Strategy 1 succeeded");
+          console.log("📡 Strategy 1: Direct API navigation...");
+          const response = await page.goto(apiUrl, { 
+            waitUntil: "domcontentloaded",
+            timeout: 8000
+          });
+
+          if (!response || !response.ok()) {
+            throw new Error(`HTTP ${response ? response.status() : 'unknown'}: Direct navigation failed`);
+          }
+
+          data = await page.content();
+          console.log("✅ Strategy 1 succeeded - Direct navigation worked!");
           
         } catch (strategy1Error) {
           console.log("❌ Strategy 1 failed:", strategy1Error.message);
           
-          // Strategy 2: Direct navigation to API URL
+          // Strategy 2: Session establishment + fetch (fallback - 8-12 seconds)
           try {
-            console.log("📡 Strategy 2: Direct navigation...");
-            const response = await page.goto(apiUrl, { 
+            console.log("📡 Strategy 2: Session establishment...");
+            await page.goto("https://www.nseindia.com", { 
               waitUntil: "domcontentloaded",
-              timeout: 10000
+              timeout: 6000
             });
+            
+            // Minimal wait for session (reduced from 2-5 seconds to 1 second)
+            console.log("⏳ Quick session wait...");
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
-            if (!response || !response.ok()) {
-              throw new Error(`HTTP ${response ? response.status() : 'unknown'}: Failed to load API`);
+            // Minimal human-like behavior (single mouse movement)
+            try {
+              await page.mouse.move(100 + Math.random() * 200, 100 + Math.random() * 200);
+              await new Promise(resolve => setTimeout(resolve, 200));
+            } catch (mouseError) {
+              console.log("Mouse interaction failed, continuing...");
             }
 
-            data = await page.content();
-            console.log("✅ Strategy 2 succeeded");
+            data = await page.evaluate(async (url) => {
+              try {
+                const resp = await fetch(url, {
+                  method: 'GET',
+                  headers: {
+                    "Accept": "application/json, text/plain, */*",
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Referer": "https://www.nseindia.com/",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Cache-Control": "no-cache",
+                    "Pragma": "no-cache"
+                  },
+                  credentials: 'include',
+                  mode: 'cors'
+                });
+                
+                if (!resp.ok) {
+                  throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+                }
+                
+                return await resp.text();
+              } catch (error) {
+                throw new Error(`Fetch error: ${error.message}`);
+              }
+            }, apiUrl);
+            
+            console.log("✅ Strategy 2 succeeded - Session establishment worked!");
             
           } catch (strategy2Error) {
             console.log("❌ Strategy 2 failed:", strategy2Error.message);
@@ -237,7 +223,7 @@ export default async function handler(req, res) {
         retryCount++;
         
         if (retryCount < maxRetries) {
-          const retryDelay = (retryCount + 1) * 3000 + Math.random() * 2000; // 3-8 seconds with randomization
+          const retryDelay = (retryCount + 1) * 1000 + Math.random() * 1000; // 1-3 seconds with randomization
           console.log(`🔄 Retrying in ${Math.round(retryDelay/1000)} seconds...`);
           await new Promise(resolve => setTimeout(resolve, retryDelay));
           continue;
