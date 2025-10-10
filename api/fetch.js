@@ -1,18 +1,21 @@
-import puppeteer from 'puppeteer';
+import chromium from 'chrome-aws-lambda';
+import puppeteer from 'puppeteer-core';
 
 export default async function handler(req, res) {
   const url = req.query.url;
   if (!url) return res.status(400).send('Missing url');
 
-  let browser;
+  let browser = null;
   try {
     browser = await puppeteer.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath,
+      headless: chromium.headless,
     });
 
     const page = await browser.newPage();
 
-    // Set browser-like headers
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     );
@@ -21,11 +24,11 @@ export default async function handler(req, res) {
       'Referer': 'https://www.nseindia.com/',
     });
 
-    // Go to NSE API endpoint
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
 
-    // Fetch the API response from page context
-    const text = await page.evaluate(u => fetch(u, { headers: { 'Accept': 'application/json, text/plain, */*' } }).then(r => r.text()), url);
+    const text = await page.evaluate(u => 
+      fetch(u, { headers: { 'Accept': 'application/json, text/plain, */*' } }).then(r => r.text()), url
+    );
 
     await browser.close();
     res.status(200).send(text);
