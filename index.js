@@ -1,150 +1,236 @@
-const puppeteer = require('puppeteer');
 const express = require('express');
 
-// Helper function to create browser with anti-detection settings
-const createBrowser = async () => {
-  return await puppeteer.launch({ 
-    args: [
-      '--single-process', 
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--disable-gpu',
-      '--disable-web-security',
-      '--disable-features=VizDisplayCompositor',
-      '--disable-http2',
-      '--disable-blink-features=AutomationControlled',
-      '--disable-extensions',
-      '--disable-plugins',
-      '--no-default-browser-check',
-      '--disable-background-timer-throttling',
-      '--disable-backgrounding-occluded-windows',
-      '--disable-renderer-backgrounding'
-    ],
-    headless: 'new',
-    ignoreDefaultArgs: ['--enable-automation']
-  });
-};
-
-// Helper function to configure page with realistic browser settings
-const configurePage = async (page) => {
-  // Set a realistic user agent
-  await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-  
-  // Set additional headers to appear more like a real browser
-  await page.setExtraHTTPHeaders({
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.9',
+// Helper function to create realistic headers (matching working curl)
+const createHeaders = () => {
+  return {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+    'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
     'Accept-Encoding': 'gzip, deflate, br',
-    'DNT': '1',
-    'Connection': 'keep-alive',
-    'Upgrade-Insecure-Requests': '1',
+    'Cache-Control': 'max-age=0',
+    'Priority': 'u=0, i',
+    'Sec-CH-UA': '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
+    'Sec-CH-UA-Mobile': '?0',
+    'Sec-CH-UA-Platform': '"macOS"',
     'Sec-Fetch-Dest': 'document',
     'Sec-Fetch-Mode': 'navigate',
     'Sec-Fetch-Site': 'none',
     'Sec-Fetch-User': '?1',
-    'Cache-Control': 'max-age=0'
-  });
-  
-  // Set viewport to a common desktop size
-  await page.setViewport({ width: 1366, height: 768 });
-  
-  // Remove webdriver property
-  await page.evaluateOnNewDocument(() => {
-    Object.defineProperty(navigator, 'webdriver', {
-      get: () => undefined,
-    });
-  });
+    'Upgrade-Insecure-Requests': '1'
+  };
 };
 
-// Helper function to wait (replaces waitForTimeout for older Puppeteer versions)
+// Helper function to wait (simulate delays)
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function to make fetch request with retries
+const fetchWithRetry = async (url, options = {}, maxRetries = 3) => {
+  let lastError = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Attempt ${attempt} to fetch: ${url}`);
+      
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...createHeaders(),
+          ...options.headers
+        },
+        redirect: 'follow',
+        timeout: 15000
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return response;
+    } catch (error) {
+      lastError = error;
+      console.log(`Attempt ${attempt} failed: ${error.message}`);
+      
+      if (attempt < maxRetries) {
+        const delay = attempt * 1000; // Exponential backoff
+        console.log(`Waiting ${delay}ms before retry...`);
+        await wait(delay);
+      }
+    }
+  }
+  
+  throw lastError;
+};
+
+// Helper function to extract relevant headers from response
+const extractRelevantHeaders = (response) => {
+  const relevantHeaders = {};
+  
+  // Headers that are commonly needed for authentication/session
+  const headersToExtract = [
+    'set-cookie',
+    'authorization',
+    'x-csrf-token',
+    'x-requested-with',
+    'x-api-key',
+    'x-auth-token',
+    'x-session-id',
+    'x-csrf',
+    'csrf-token',
+    'authenticity-token',
+    'x-xsrf-token',
+    'x-csrf-token',
+    'referer'
+  ];
+  
+  // Extract headers from response
+  headersToExtract.forEach(headerName => {
+    const headerValue = response.headers.get(headerName);
+    if (headerValue) {
+      relevantHeaders[headerName] = headerValue;
+      console.log(`Extracted header ${headerName}:`, headerValue);
+    }
+  });
+  
+  // Also log all available headers for debugging
+  console.log('All response headers:');
+  response.headers.forEach((value, key) => {
+    console.log(`  ${key}: ${value}`);
+  });
+  
+  return relevantHeaders;
+};
+
+// Helper function to format cookies for Cookie header
+const formatCookies = (setCookieHeaders) => {
+  if (!setCookieHeaders) return '';
+  
+  // Handle both single cookie and multiple cookies
+  const cookies = Array.isArray(setCookieHeaders) ? setCookieHeaders : [setCookieHeaders];
+  
+  return cookies.map(cookie => {
+    // Extract just the name=value part, ignoring attributes like Path, Domain, etc.
+    return cookie.split(';')[0].trim();
+  }).join('; ');
+};
+
+// Helper function to parse all cookies from set-cookie headers
+const parseAllCookies = (response) => {
+  const cookieHeader = response.headers.get('set-cookie');
+  if (!cookieHeader) return '';
+  
+  console.log('Raw set-cookie header:', cookieHeader);
+  
+  // Handle multiple set-cookie headers (they come as an array)
+  let cookieStrings = [];
+  if (Array.isArray(cookieHeader)) {
+    cookieStrings = cookieHeader;
+  } else {
+    // Split by comma, but be careful about cookie boundaries
+    const parts = cookieHeader.split(',');
+    let currentCookie = '';
+    
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i].trim();
+      
+      // Check if this looks like the start of a new cookie
+      // Look for patterns like "name=value" at the start
+      if (part.match(/^[a-zA-Z0-9_-]+=/)) {
+        // This is likely a new cookie
+        if (currentCookie) {
+          cookieStrings.push(currentCookie);
+        }
+        currentCookie = part;
+      } else {
+        // This is a continuation of the current cookie
+        currentCookie += ', ' + part;
+      }
+    }
+    
+    if (currentCookie) {
+      cookieStrings.push(currentCookie);
+    }
+  }
+  
+  console.log('Parsed individual cookies:', cookieStrings);
+  
+  // Extract just the name=value part from each cookie, ignoring attributes
+  const cookieValues = cookieStrings.map(cookie => {
+    const nameValue = cookie.split(';')[0].trim();
+    console.log(`Extracted cookie: ${nameValue}`);
+    return nameValue;
+  });
+  
+  const result = cookieValues.join('; ');
+  console.log('Final cookie string:', result);
+  
+  return result;
+};
+
 
 // Main function to visit baseUrl then actualUrl and return content
 const getPageContent = async (baseUrl, actualUrl) => {
-  const browser = await createBrowser();
-  const page = await browser.newPage();
+  let sessionHeaders = {};
   
   try {
-    await configurePage(page);
-    
     console.log(`First visiting base URL: ${baseUrl}`);
     
-    // First visit the base URL to establish session
+    // First visit the base URL to establish session/cookies
     try {
-      await page.goto(baseUrl, { 
-        waitUntil: 'domcontentloaded', 
-        timeout: 15000 
+      const baseResponse = await fetchWithRetry(baseUrl, {
+        method: 'GET'
       });
-      console.log('Base URL loaded successfully');
+      
+      // Extract all relevant headers from the base response
+      sessionHeaders = extractRelevantHeaders(baseResponse);
+      
+      // Parse all cookies properly
+      const allCookies = parseAllCookies(baseResponse);
+      if (allCookies) {
+        sessionHeaders['Cookie'] = allCookies;
+        console.log('All cookies for next request:', allCookies);
+      }
+      
+      console.log('Base URL loaded successfully, extracted headers:', Object.keys(sessionHeaders));
       
       // Wait a bit to simulate human behavior
       await wait(2000);
       
-      // Scroll a bit to simulate human interaction
-      await page.evaluate(() => {
-        window.scrollTo(0, 100);
-      });
-      
-      await wait(1000);
     } catch (error) {
       console.log('Base URL failed, continuing to target URL...');
     }
     
     console.log(`Now visiting target URL: ${actualUrl}`);
     
-    // Now visit the actual target URL
-    let success = false;
-    let lastError = null;
+    // Prepare headers for the target URL request using extracted cookies
+    const targetHeaders = {
+      ...sessionHeaders,
+      // Add referer to show we came from the base URL
+      'Referer': baseUrl
+    };
     
-    // Try different wait strategies for the target URL
-    try {
-      await page.goto(actualUrl, { 
-        waitUntil: 'networkidle2', 
-        timeout: 15000 
-      });
-      success = true;
-    } catch (error) {
-      lastError = error;
-      console.log('Networkidle2 failed, trying domcontentloaded...');
-      
-      // Fallback to domcontentloaded
-      try {
-        await page.goto(actualUrl, { 
-          waitUntil: 'domcontentloaded', 
-          timeout: 15000 
-        });
-        success = true;
-      } catch (error2) {
-        lastError = error2;
-        console.log('Domcontentloaded failed, trying load...');
-        
-        // Final fallback to load
-        await page.goto(actualUrl, { 
-          waitUntil: 'load', 
-          timeout: 15000 
-        });
-        success = true;
-      }
+    // Use extracted cookies from base URL
+    if (sessionHeaders['Cookie']) {
+      console.log('Using cookies extracted from base URL:', sessionHeaders['Cookie']);
+    } else {
+      console.log('No cookies extracted from base URL - this may cause authentication issues');
     }
     
-    if (!success) {
-      throw lastError;
-    }
+    console.log('Sending headers to target URL:', targetHeaders);
     
-    // Wait a bit more for dynamic content to load
-    await wait(3000);
+    // Now visit the actual target URL with all extracted headers
+    const targetResponse = await fetchWithRetry(actualUrl, {
+      method: 'GET',
+      headers: targetHeaders
+    });
+    
+    // Wait a bit more for any dynamic content considerations
+    await wait(1000);
     
     // Get the page content
-    const content = await page.content();
+    const content = await targetResponse.text();
     
-    await browser.close();
     return content;
   } catch (error) {
-    await browser.close();
     throw error;
   }
 };
