@@ -1,11 +1,9 @@
-const puppeteer = require('puppeteer-core');
-const { Hono } = require('hono');
-const { serve } = require('@hono/node-server');
+const puppeteer = require('puppeteer');
+const express = require('express');
 
 // Helper function to create browser with anti-detection settings
 const createBrowser = async () => {
   return await puppeteer.launch({ 
-    executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     args: [
       '--single-process', 
       '--no-sandbox',
@@ -151,15 +149,15 @@ const getPageContent = async (baseUrl, actualUrl) => {
   }
 };
 
-const app = new Hono();
+const app = express();
 
 // Main endpoint - takes baseUrl and actualUrl as parameters
-app.get('/', async (c) => {
-  const baseUrl = c.req.query('baseUrl');
-  const actualUrl = c.req.query('actualUrl');
+app.get('/', async (req, res) => {
+  const baseUrl = req.query.baseUrl;
+  const actualUrl = req.query.actualUrl;
 
   if (!baseUrl || !actualUrl) {
-    return c.text('Please provide both baseUrl and actualUrl parameters. Example: ?baseUrl=https://www.nseindia.com&actualUrl=https://www.nseindia.com/api/holiday-master?type=trading');
+    return res.status(400).send('Please provide both baseUrl and actualUrl parameters. Example: ?baseUrl=https://www.nseindia.com&actualUrl=https://www.nseindia.com/api/holiday-master?type=trading');
   }
 
   // Decode the URLs in case they were URL encoded
@@ -171,28 +169,25 @@ app.get('/', async (c) => {
 
   try {
     const content = await getPageContent(decodedBaseUrl, decodedActualUrl);
-    return c.text(content, { 
-      headers: { 
-        'Content-Type': 'text/plain',
-        'Cache-Control': 'no-cache'
-      } 
-    });
+    res.set('Content-Type', 'text/plain');
+    res.set('Cache-Control', 'no-cache');
+    return res.send(content);
   } catch (error) {
     console.error('Content fetch error:', error.message);
-    return c.json({ 
+    return res.status(500).json({ 
       error: 'Failed to fetch content', 
       details: error.message 
-    }, 500);
+    });
   }
 });
 
 // Health check endpoint
-app.get('/health', (c) => {
-  return c.json({ status: 'OK', timestamp: new Date().toISOString() });
+app.get('/health', (req, res) => {
+  return res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-const port = 8080;
-serve({ fetch: app.fetch, port }).on('listening', () => {
+const port = process.env.PORT || 8080;
+app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
   console.log(`Usage: http://localhost:${port}/?baseUrl=<base_url>&actualUrl=<target_url>`);
   console.log(`Note: URL encode the actualUrl parameter if it contains & characters`);

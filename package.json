@@ -10,8 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@hono/node-server": "^1.19.5",
-    "hono": "^4.10.1",
-    "puppeteer-core": "^24.25.0"
+    "express": "^4.21.2",
+    "puppeteer": "^24.25.0"
   }
 }
