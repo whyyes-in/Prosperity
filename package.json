@@ -12,7 +12,7 @@
     "@sparticuz/chromium": "^130.0.0"
   },
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   },
   "author": "",
   "license": "MIT"
