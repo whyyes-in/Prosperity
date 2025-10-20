@@ -1,6 +1,7 @@
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 
+
 /**
  * Vercel Function for fetching web data with session management
  * 
