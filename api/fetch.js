@@ -11,6 +11,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  let browser = null;
   try {
     const { url, baseUrl, actualUrl } = req.query;
     const targetUrl = actualUrl || url;
@@ -28,23 +29,43 @@ export default async function handler(req, res) {
 
     console.log(`Fetching: ${targetUrl}`);
 
-    // Create browser with minimal configuration
+    // Optimize chromium modes for serverless
+    try {
+      chromium.setHeadlessMode = true;
+      chromium.setGraphicsMode = false;
+    } catch {}
+
+    // Create browser with Vercel-optimized configuration
     const executablePath = await chromium.executablePath();
-    const browser = await puppeteer.launch({
+    browser = await puppeteer.launch({
       args: [
         ...chromium.args,
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--single-process',
-        '--disable-gpu'
+        '--disable-gpu',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor',
+        '--memory-pressure-off',
+        '--max_old_space_size=512'
       ],
       executablePath,
       headless: chromium.headless,
-      ignoreHTTPSErrors: true
+      ignoreHTTPSErrors: true,
+      protocolTimeout: 15000
     });
 
     const page = await browser.newPage();
+    page.setDefaultNavigationTimeout(8000);
+    page.setDefaultTimeout(8000);
+    await page.setRequestInterception(true);
+    page.on('request', (request) => {
+      const resourceType = request.resourceType();
+      if (resourceType === 'image' || resourceType === 'stylesheet' || resourceType === 'font' || resourceType === 'media') {
+        return request.abort();
+      }
+      return request.continue();
+    });
     
     // Set basic headers
     await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36");
@@ -54,8 +75,8 @@ export default async function handler(req, res) {
     // Visit baseUrl first if provided
     if (baseUrl) {
       try {
-        await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 5000 });
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 3000 });
+        await new Promise(resolve => setTimeout(resolve, 200));
       } catch (error) {
         console.log("BaseUrl failed, continuing...");
       }
@@ -63,7 +84,7 @@ export default async function handler(req, res) {
     
     // Fetch target URL
     try {
-      const response = await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 10000 });
+      const response = await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 8000 });
       if (!response || !response.ok()) {
         throw new Error(`HTTP ${response ? response.status() : 'unknown'}`);
       }
@@ -71,8 +92,6 @@ export default async function handler(req, res) {
     } catch (error) {
       throw new Error(`Failed to fetch: ${error.message}`);
     }
-
-    await browser.close();
     
     res.status(200).send(data);
     
@@ -82,5 +101,9 @@ export default async function handler(req, res) {
       error: error.message,
       timestamp: new Date().toISOString()
     });
+  } finally {
+    if (browser) {
+      try { await browser.close(); } catch {}
+    }
   }
 }
