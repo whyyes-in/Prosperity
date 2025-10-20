@@ -17,37 +17,11 @@ import chromium from "@sparticuz/chromium";
 const createBrowser = async () => {
   const executablePath = await chromium.executablePath();
   return await puppeteer.launch({
-    args: [
-      ...chromium.args,
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-images',
-      '--disable-extensions',
-      '--disable-plugins',
-      '--disable-gpu',
-      '--disable-web-security',
-      '--disable-features=VizDisplayCompositor',
-      '--single-process',
-      '--no-zygote',
-      '--disable-background-timer-throttling',
-      '--disable-backgrounding-occluded-windows',
-      '--disable-renderer-backgrounding',
-      '--disable-background-networking',
-      '--disable-default-apps',
-      '--disable-sync',
-      '--disable-translate',
-      '--hide-scrollbars',
-      '--metrics-recording-only',
-      '--mute-audio',
-      '--no-first-run',
-      '--safebrowsing-disable-auto-update',
-      '--disable-ipc-flooding-protection'
-    ],
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
     executablePath,
-    headless: true,
+    headless: chromium.headless,
     ignoreHTTPSErrors: true,
-    ignoreDefaultArgs: ['--disable-extensions'],
     protocolTimeout: 60000
   });
 };
