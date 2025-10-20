@@ -1,10 +1,11 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const { Hono } = require('hono');
 const { serve } = require('@hono/node-server');
 
 // Helper function to create browser with anti-detection settings
 const createBrowser = async () => {
   return await puppeteer.launch({ 
+    executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     args: [
       '--single-process', 
       '--no-sandbox',
