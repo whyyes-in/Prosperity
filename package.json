@@ -5,8 +5,7 @@
   "description": "Serverless Puppeteer for fetching NSE API endpoints on Vercel",
   "main": "api/fetch.js",
   "scripts": {
-    "start": "vercel dev",
-    "build": "echo 'No build step required'"
+    "start": "vercel dev"
   },
   "dependencies": {
     "puppeteer-core": "^22.0.0",

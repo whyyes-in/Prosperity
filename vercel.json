@@ -5,5 +5,7 @@
     }
   },
   "regions": ["iad1"],
-  "framework": null
+  "framework": null,
+  "buildCommand": null,
+  "outputDirectory": null
 }
