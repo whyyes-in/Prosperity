@@ -18,12 +18,22 @@ import chromium from "@sparticuz/chromium";
 const createBrowser = async () => {
   const executablePath = await chromium.executablePath();
   return await puppeteer.launch({
-    args: chromium.args,
+    args: [
+      ...chromium.args,
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',
+      '--disable-gpu'
+    ],
     defaultViewport: chromium.defaultViewport,
     executablePath,
     headless: chromium.headless,
     ignoreHTTPSErrors: true,
-    protocolTimeout: 60000
+    protocolTimeout: 30000
   });
 };
 
@@ -72,12 +82,12 @@ const fetchData = async (page, url, refererUrl) => {
 };
 
 export default async function handler(req, res) {
-  // Set timeout for Vercel (25 seconds max - increased for better success rate)
+  // Set timeout for Vercel (20 seconds max - optimized for serverless)
   const timeoutId = setTimeout(() => {
     if (!res.headersSent) {
       res.status(408).json({ error: "Request timeout - function exceeded time limit" });
     }
-  }, 25000);
+  }, 20000);
 
   try {
     // Enable CORS for Apps Script
@@ -121,7 +131,7 @@ export default async function handler(req, res) {
 
     let browser = null;
     let retryCount = 0;
-    const maxRetries = 2; // Reduced from 3 to save time
+    const maxRetries = 1; // Single retry for faster response
 
     while (retryCount < maxRetries) {
       try {
