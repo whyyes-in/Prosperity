@@ -24,11 +24,17 @@ const createBrowser = async () => {
       '--disable-dev-shm-usage',
       '--disable-images',
       '--disable-extensions',
-      '--disable-plugins'
+      '--disable-plugins',
+      '--disable-gpu',
+      '--disable-web-security',
+      '--disable-features=VizDisplayCompositor',
+      '--single-process',
+      '--no-zygote'
     ],
     executablePath,
     headless: true,
-    ignoreHTTPSErrors: true
+    ignoreHTTPSErrors: true,
+    ignoreDefaultArgs: ['--disable-extensions']
   });
 };
 
