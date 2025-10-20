@@ -1,5 +1,3 @@
-const express = require('express');
-
 // Helper function to create realistic headers (matching working curl)
 const createHeaders = () => {
   return {
@@ -166,7 +164,6 @@ const parseAllCookies = (response) => {
   return result;
 };
 
-
 // Main function to visit baseUrl then actualUrl and return content
 const getPageContent = async (baseUrl, actualUrl) => {
   let sessionHeaders = {};
@@ -235,15 +232,28 @@ const getPageContent = async (baseUrl, actualUrl) => {
   }
 };
 
-const app = express();
+export default async function handler(req, res) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
-// Main endpoint - takes baseUrl and actualUrl as parameters
-app.get('/', async (req, res) => {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   const baseUrl = req.query.baseUrl;
   const actualUrl = req.query.actualUrl;
 
   if (!baseUrl || !actualUrl) {
-    return res.status(400).send('Please provide both baseUrl and actualUrl parameters. Example: ?baseUrl=https://www.nseindia.com&actualUrl=https://www.nseindia.com/api/holiday-master?type=trading');
+    return res.status(400).json({ 
+      error: 'Please provide both baseUrl and actualUrl parameters',
+      example: '?baseUrl=https://www.nseindia.com&actualUrl=https://www.nseindia.com/api/holiday-master?type=trading'
+    });
   }
 
   // Decode the URLs in case they were URL encoded
@@ -255,27 +265,15 @@ app.get('/', async (req, res) => {
 
   try {
     const content = await getPageContent(decodedBaseUrl, decodedActualUrl);
-    res.set('Content-Type', 'text/plain');
-    res.set('Cache-Control', 'no-cache');
-    return res.send(content);
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Cache-Control', 'no-cache');
+    return res.status(200).send(content);
   } catch (error) {
     console.error('Content fetch error:', error.message);
     return res.status(500).json({ 
       error: 'Failed to fetch content', 
-      details: error.message 
+      details: error.message,
+      timestamp: new Date().toISOString()
     });
   }
-});
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  return res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
-
-const port = process.env.PORT || 8080;
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-  console.log(`Usage: http://localhost:${port}/?baseUrl=<base_url>&actualUrl=<target_url>`);
-  console.log(`Note: URL encode the actualUrl parameter if it contains & characters`);
-  console.log(`Example: actualUrl=https%3A//www.nseindia.com/api/corporates-pit%3Findex%3Dequities%26from_date%3D19-07-2025%26to_date%3D19-10-2025`);
-});
+}
