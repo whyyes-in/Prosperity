@@ -29,12 +29,26 @@ const createBrowser = async () => {
       '--disable-web-security',
       '--disable-features=VizDisplayCompositor',
       '--single-process',
-      '--no-zygote'
+      '--no-zygote',
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding',
+      '--disable-background-networking',
+      '--disable-default-apps',
+      '--disable-sync',
+      '--disable-translate',
+      '--hide-scrollbars',
+      '--metrics-recording-only',
+      '--mute-audio',
+      '--no-first-run',
+      '--safebrowsing-disable-auto-update',
+      '--disable-ipc-flooding-protection'
     ],
     executablePath,
     headless: true,
     ignoreHTTPSErrors: true,
-    ignoreDefaultArgs: ['--disable-extensions']
+    ignoreDefaultArgs: ['--disable-extensions'],
+    protocolTimeout: 60000
   });
 };
 
